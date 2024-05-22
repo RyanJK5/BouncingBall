@@ -1,3 +1,3 @@
 ﻿
-using var game = new BouncingBall.Game1();
+using var game = new BouncingBall.BallWindow();
 game.Run();

@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
+using BouncingBall.UI;
 
-public class Game1 : Game {
+public class BallWindow : Game {
     
     private const float Gravity = 40;
     private const float InitialSpeed = 5;
@@ -23,18 +24,19 @@ public class Game1 : Game {
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
 
-    private int _hue;
-
-    private CircleF _outerCircle;
+    private List<IElement> _ui;
 
     private List<Ball> _balls;
 
+    private CircleF _outerCircle;
+
+    private int _hue;
 
     private int WindowWidth => _graphics.PreferredBackBufferWidth;
     private int WindowHeight => _graphics.PreferredBackBufferHeight;
 
 
-    public Game1() {
+    public BallWindow() {
         _graphics = new GraphicsDeviceManager(this) {
             PreferredBackBufferWidth = 800,
             PreferredBackBufferHeight = 800
@@ -57,21 +59,17 @@ public class Game1 : Game {
 
         _outerCircle = new CircleF(new(WindowWidth / 2, WindowHeight / 2), 300);
 
-        _balls = new() {
+        _balls = [
             new Ball() {
                 Bounds = new CircleF(new(_outerCircle.Position.X, _outerCircle.Position.Y - 80), 10),
                 Velocity = new Vector2(0, 1) * InitialSpeed
             },
-            // new Ball() {
-            //     Bounds = new CircleF(_outerCircle.Position, 10),
-            //     Velocity = new Vector2(0, 1) * InitialSpeed
-            // }
-        };
+        ];
+
+        _ui = [];
     }
 
-    protected override void LoadContent() {
-        _spriteBatch = new SpriteBatch(GraphicsDevice);
-    }
+    protected override void LoadContent() => _spriteBatch = new SpriteBatch(GraphicsDevice);
 
     protected override void Update(GameTime gameTime) {
         base.Update(gameTime);
@@ -106,11 +104,16 @@ public class Game1 : Game {
         GraphicsDevice.Clear(Color.Black);
 
         _spriteBatch.Begin();
+
         _spriteBatch.DrawCircle(_outerCircle, 100, color, 5f);
         
         foreach (var ball in _balls) {
             _spriteBatch.Draw(ball.GetTexture(_spriteBatch.GraphicsDevice), ball.TopLeft, color);
         }
+
+        foreach (var ui in _ui) {
+        }
+
         _spriteBatch.End();
 
         base.Draw(gameTime);
