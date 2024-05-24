@@ -1,5 +1,5 @@
 using System;
-using System.Security;
+using System.Drawing.Printing;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -11,8 +11,8 @@ public class Ball {
     public CircleF Bounds;
     public Vector2 Velocity;
 
-    public int Radius {
-        get => (int) Bounds.Radius;
+    public float Radius {
+        get => Bounds.Radius;
         set => Bounds.Radius = value;
     }
 
@@ -25,7 +25,7 @@ public class Ball {
         get => Bounds.ToRectangleF().TopLeft;
     }
     
-    public void Update(GameTime gameTime, Random random, PhysicsRules rules) {
+    public void Update(GameTime gameTime, Random random, SimulationRules rules) {
         Velocity.Y += gameTime.GetElapsedSeconds() * rules.Gravity;
         
         if (MathF.Abs(Velocity.X) < 1) {
@@ -35,29 +35,27 @@ public class Ball {
         Center += Velocity;
     }
 
-    public bool CollidesWith(Ball ball) => ball != this && (ball.Center - Center).Length() <= ball.Radius + Radius;
+    public bool CollidesWith(Ball ball) => ball != this && (ball.Center - Center).Length() <= ball.Radius + Radius + 2;
+
+    public bool CollidesWithOuter(CircleF outerCircle) =>(Center - outerCircle.Center).Length() >= outerCircle.Radius - Radius;
+
 
     public void OnCollision(Ball ball) {
         Vector2 thisCorrection = Velocity * 0.1f;
         Vector2 otherCorrection = ball.Velocity * 0.1f;
 
-        ReflectVelocities(this, ball);
-
         while (CollidesWith(ball)) {
             Center -= thisCorrection;
             ball.Center -= otherCorrection;
         }
+
+        ReflectVelocities(this, ball);
+        Console.WriteLine((ball.Center - Center).Length());
     }
 
-
-    public bool CollidesWithOuter(CircleF outerCircle) {
-        float circDistance = (Center - outerCircle.Center).Length();
-        if (circDistance >= outerCircle.Radius - Radius) {
-            Center -= (Center - outerCircle.Center).NormalizedCopy() * Velocity.Length();
-            ReflectVelocityOffOuter(outerCircle, Center);
-            return true;
-        }
-        return false;
+    public void OnCollision(CircleF outerCircle) {
+        Center -= (Center - outerCircle.Center).NormalizedCopy() * Velocity.Length();
+        ReflectVelocityOffOuter(outerCircle, Center);
     }
 
     private static void ReflectVelocities(Ball a, Ball b) {
@@ -82,7 +80,7 @@ public class Ball {
     }
 
     public Texture2D GetTexture(GraphicsDevice graphics) {
-        int diameter = Radius * 2;
+        int diameter = (int) (Radius * 2);
         var center = new Vector2(Radius, Radius);
         
         var result = new Texture2D(graphics, diameter, diameter);
