@@ -1,8 +1,6 @@
-using System;
-
 namespace BouncingBall;
 
-public class BallEventArgs(SimulationEventType type, SimulationRules rules, params Ball[] balls) : EventArgs {
+public readonly struct BallEventArgs(SimulationEventType type, SimulationRules rules, params Ball[] balls) {
     
     public readonly SimulationEventType Type = type;
 

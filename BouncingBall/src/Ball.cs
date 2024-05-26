@@ -26,7 +26,7 @@ public class Ball {
     }
     
     public void Update(GameTime gameTime, Random random, SimulationRules rules) {
-        Velocity.Y += gameTime.GetElapsedSeconds() * rules.Gravity;
+        Velocity.Y += gameTime.GetElapsedSeconds() * rules[RuleType.Gravity];
         
         if (MathF.Abs(Velocity.X) < 1) {
             int sign = random.NextDouble() > 0.5 ? 1 : -1;
@@ -50,7 +50,6 @@ public class Ball {
         }
 
         ReflectVelocities(this, ball);
-        Console.WriteLine((ball.Center - Center).Length());
     }
 
     public void OnCollision(CircleF outerCircle) {

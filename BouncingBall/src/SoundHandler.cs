@@ -9,7 +9,7 @@ using Melanchall.DryWetMidi.Multimedia;
 
 namespace BouncingBall;
 
-public class NoteOutput {
+public class SoundHandler {
     
     private IEnumerator<long> _enumerator;
     
@@ -19,7 +19,7 @@ public class NoteOutput {
     private readonly TempoMap _map;
 
 
-    public NoteOutput(MidiFile file) {
+    public SoundHandler(MidiFile file) {
         _events = file.GetTimedEvents();
         _onOffPairs = [];
         _outputDevice = OutputDevice.GetByName("Microsoft GS Wavetable Synth");
