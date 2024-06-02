@@ -8,27 +8,32 @@ using MonoGame.Extended;
 using Melanchall.DryWetMidi.Core;
 using BouncingBall.UI;
 using MonoGame.Extended.Input.InputListeners;
-using System.Data;
+using MonoGame.Extended.BitmapFonts;
 
 #nullable enable
 
 public class Simulation : Game {
     
+    private const int BorderMargin = 10;
+
     private const float Saturation = 1;
     private const float Value = 1;
     private const int HueIncrement = 2;
 
     private static readonly Random Random = new();
 
+    private readonly Dictionary<FontType, BitmapFont> _fonts;
+
     private SimulationRules _rules;
 
     private readonly GraphicsDeviceManager _graphics;
 
-    private SpriteBatch? _spriteBatch;
 
     private readonly List<Ball> _balls;
     private readonly List<Widget> _widgets;
 
+    private SpriteBatch? _spriteBatch;
+    
     private CircleF _outerCircle;
 
     private int _hue;
@@ -41,18 +46,19 @@ public class Simulation : Game {
 
     private int WindowHeight => _graphics.PreferredBackBufferHeight;
 
-    public Simulation(MidiFile file, SimulationRules rules) : base() {
+    public Simulation(MidiFile file) : base() {
         _graphics = new GraphicsDeviceManager(this) {
-            PreferredBackBufferWidth = 800,
-            PreferredBackBufferHeight = 800
+            PreferredBackBufferWidth = 450,
+            PreferredBackBufferHeight = 1000
         };
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
 
         _hue = 0;
-        _rules = rules;
         _balls = [];
         _widgets = [];
+        _fonts = [];
+        _rules = new();
 
         SoundHandler output = new(file);
         OuterCollision += (sender, args) => output.PlayNextNote();
@@ -67,34 +73,50 @@ public class Simulation : Game {
     protected override void Initialize() {
         base.Initialize();
 
-        _outerCircle = new CircleF(new(WindowWidth / 2, WindowHeight / 2), 300);
+        int outerRadius = (WindowWidth - BorderMargin * 2) / 2;
+        _outerCircle = new CircleF(new(WindowWidth / 2, outerRadius + BorderMargin * 4), outerRadius);
 
+        bool oneBall = _rules[RuleType.BallCount] == 1;
         for (var i = 0; i < _rules[RuleType.BallCount]; i++) {
             float theta = (float) Random.NextDouble() * MathF.Tau;
-            float distance = (float) Random.NextDouble() * (_outerCircle.Radius - 50);
+            float distance = (float) Random.NextDouble() * (_outerCircle.Radius - _rules[RuleType.InitialRadius] * 3);
+            
             _balls.Add(new Ball() {
                 Bounds = new CircleF(new(
-                    distance * MathF.Sin(theta) + _outerCircle.Center.Y, 
-                    distance * MathF.Cos(theta) + _outerCircle.Center.X), 
+                    (oneBall ? distance * MathF.Sin(theta) : 0) + _outerCircle.Center.Y, 
+                    (oneBall ? distance * MathF.Cos(theta) : 0) + _outerCircle.Center.X), 
                     _rules[RuleType.InitialRadius]
                 ),
                 Velocity = new Vector2(0, 1) * _rules[RuleType.InitialSpeed]
             });
         }
+
+        RuleType[] ruleTypes = Enum.GetValues<RuleType>();
+        for (var i = 0; i < ruleTypes.Length; i++) {
+            Range<float> range = RuleTypes.DefaultRange(ruleTypes[i]);
+            var slider = new Slider(ruleTypes[i], _rules[ruleTypes[i]]) {
+                Bounds = new RectangleF(
+                    _outerCircle.Center.X - _outerCircle.Radius, 
+                    _outerCircle.Center.Y + _outerCircle.Radius + 25 + i * 60,
+                    100,
+                    20
+                ),
+                KnobWidth = 10,
+                MinValue = range.Min,
+                MaxValue = range.Max
+            };
+            Components.Add(new InputListenerComponent(this, slider.GetListeners()));
+            slider.Updated += (sender, args) => _rules = new SimulationRules(_rules, args.Rule, args.Value);
+            _widgets.Add(slider);
+        }
     }
 
     protected override void LoadContent() {
-        _spriteBatch = new SpriteBatch(GraphicsDevice);
+        foreach (FontType type in Enum.GetValues<FontType>()) {
+            _fonts[type] = Content.Load<BitmapFont>(type.ToString().ToLower());
+        }
 
-        var slider = new Slider(RuleType.Gravity, _rules[RuleType.Gravity]) {
-            Bounds = new RectangleF(100, 100, 100, 10),
-            KnobWidth = 10,
-            MinValue = 0f,
-            MaxValue = 100f
-        };
-        Components.Add(new InputListenerComponent(this, slider.GetListeners()));
-        slider.Updated += (sender, args) => _rules = new SimulationRules(_rules, args.Rule, args.Value);
-        _widgets.Add(slider);
+        _spriteBatch = new SpriteBatch(GraphicsDevice);
     } 
         
 
@@ -139,7 +161,7 @@ public class Simulation : Game {
         }
 
         foreach (var widget in _widgets) {
-            widget.Draw(_spriteBatch);
+            widget.Draw(_spriteBatch, _fonts);
         }
 
         _spriteBatch?.End();

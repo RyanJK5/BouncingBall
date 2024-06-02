@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
+using MonoGame.Extended.BitmapFonts;
 using MonoGame.Extended.Input.InputListeners;
 
 namespace BouncingBall.UI;
 
-public class Slider(RuleType ruleType, float initialValue=0) : Widget(ruleType) {
+public class Slider(RuleType ruleType, float initialValue=0) : Widget {
     
     public override RectangleF Bounds { 
         get => _bounds;
@@ -20,6 +22,8 @@ public class Slider(RuleType ruleType, float initialValue=0) : Widget(ruleType) 
         get => _knobSize.Width;
         set => _knobSize.Width = value;
     }
+
+    public readonly RuleType ManagedRule = ruleType;
 
     private RectangleF _bounds;
 
@@ -37,16 +41,28 @@ public class Slider(RuleType ruleType, float initialValue=0) : Widget(ruleType) 
 
     public override event EventHandler<UIEventArgs> Updated;
 
-    public override void Draw(SpriteBatch spriteBatch) {
+    public override void Draw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts) {
         spriteBatch.FillRectangle(Bounds, SliderColor);
         spriteBatch.FillRectangle(
             new RectangleF(
-                _value / (MaxValue - MinValue) * Bounds.Width + Bounds.X, 
+                KnobX, 
                 Bounds.Y, 
                 _knobSize.Width, 
                 _knobSize.Height
             ), 
             KnobColor
+        );
+        
+        string str = _value.ToString();
+        int dotindex = str.IndexOf('.');
+        str = dotindex > 0 ? str[..dotindex] : str;
+        spriteBatch.DrawString(fonts[FontType.NumberFont], str, new(_bounds.X, _bounds.Bottom), Color.White);
+        
+        spriteBatch.DrawString(
+            fonts[FontType.SliderFont], 
+            Util.AddSpaces(ManagedRule.ToString()), 
+            new(_bounds.X - 5, _bounds.Top - fonts[FontType.SliderFont].LineHeight), 
+            Color.White
         );
     }
 
@@ -72,7 +88,9 @@ public class Slider(RuleType ruleType, float initialValue=0) : Widget(ruleType) 
     }
 
     private void SetValueFrom(float xPos) {
-        _value = MathF.Max(MinValue, MathF.Min(MaxValue, (xPos - Bounds.X) / Bounds.Width * MaxValue + MinValue));
+        _value = MathF.Max(MinValue, MathF.Min(MaxValue, (xPos - Bounds.X) / Bounds.Width * (MaxValue - MinValue) + MinValue));
         Updated.Invoke(this, new UIEventArgs(ManagedRule, _value));
     }
+
+    private float KnobX => (_value - MinValue) / (MaxValue - MinValue) * Bounds.Width + Bounds.X;
 }
