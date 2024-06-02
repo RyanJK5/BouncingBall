@@ -28,6 +28,7 @@ public class Simulation : Game {
 
     private readonly GraphicsDeviceManager _graphics;
 
+    private readonly SoundHandler _soundHandler;
 
     private readonly List<Ball> _balls;
     private readonly List<IDrawable> _drawables;
@@ -60,8 +61,8 @@ public class Simulation : Game {
         _fonts = [];
         _rules = new();
 
-        SoundHandler output = new(file);
-        OuterCollision += (sender, args) => output.PlayNextNote();
+        _soundHandler = new(file);
+        OuterCollision += (sender, args) => _soundHandler.PlayNextNote();
         OuterCollision += (sender, args) => {
             foreach (Ball ball in args.Balls) {
                 ball.Radius += args.Rules[RuleType.RadiusIncrement];
@@ -73,24 +74,42 @@ public class Simulation : Game {
     protected override void Initialize() {
         base.Initialize();
 
-        int outerRadius = (WindowWidth - BorderMargin * 2) / 2;
-        _outerCircle = new CircleF(new(WindowWidth / 2, outerRadius + BorderMargin * 4), outerRadius);
+        RestartSimulation();
+        InitializeSliders();
 
-        bool oneBall = _rules[RuleType.BallCount] == 1;
-        for (var i = 0; i < _rules[RuleType.BallCount]; i++) {
+        Texture2D buttonTexture = Content.Load<Texture2D>("img/restartbutton");
+        var button = new Button(buttonTexture) {
+            Bounds = new(
+                _outerCircle.Center.X + _outerCircle.Radius - buttonTexture.Width,
+                _outerCircle.Center.Y + _outerCircle.Radius, 
+                buttonTexture.Width, 
+                buttonTexture.Height
+            )
+        };
+        button.Updated += (sender, args) => RestartSimulation();
+        Components.Add(new InputListenerComponent(this, button.GetListeners()));
+        _drawables.Add(button);
+    }
+
+    // TODO: fix balls spawning outside
+    private void InitializeBalls() {
+        bool oneBall = (int) _rules[RuleType.BallCount] == 1;
+        for (var i = 0; i < (int) _rules[RuleType.BallCount]; i++) {
             float theta = (float) Random.NextDouble() * MathF.Tau;
-            float distance = (float) Random.NextDouble() * (_outerCircle.Radius - _rules[RuleType.InitialRadius] * 3);
+            float distance = (float) Random.NextDouble() * (_outerCircle.Radius - _rules[RuleType.InitialBallRadius] * 3);
             
             _balls.Add(new Ball() {
                 Center = new(
                     (oneBall ? distance * MathF.Sin(theta) : 0) + _outerCircle.Center.Y, 
                     (oneBall ? distance * MathF.Cos(theta) : 0) + _outerCircle.Center.X
                 ), 
-                Radius = _rules[RuleType.InitialRadius],
+                Radius = _rules[RuleType.InitialBallRadius],
                 Velocity = new Vector2(0, 1) * _rules[RuleType.InitialSpeed]
             });
         }
+    }
 
+    private void InitializeSliders() {
         RuleType[] ruleTypes = Enum.GetValues<RuleType>();
         for (var i = 0; i < ruleTypes.Length; i++) {
             Range<float> range = RuleTypes.DefaultRange(ruleTypes[i]);
@@ -109,6 +128,17 @@ public class Simulation : Game {
             slider.Updated += (sender, args) => _rules = new SimulationRules(_rules, args.Rule, args.Value);
             _drawables.Add(slider);
         }
+    }
+
+    private void RestartSimulation() {
+        _soundHandler.Restart();
+        GraphicsDevice.Clear(Color.Black);
+
+        int outerRadius = (WindowWidth - BorderMargin * 2) / 2;
+        _outerCircle = new CircleF(new(WindowWidth / 2, outerRadius + BorderMargin * 4), outerRadius);
+        
+        _balls.Clear();
+        InitializeBalls();
     }
 
     protected override void LoadContent() {
@@ -144,7 +174,7 @@ public class Simulation : Game {
     }
 
     protected override void Draw(GameTime gameTime) {
-        Color color = ColorFromHSV(_hue, Saturation, Value);
+        Color color = Util.ColorFromHSV(_hue, Saturation, Value);
         if (_rules[RuleType.Redraw] == 1) {
             GraphicsDevice.Clear(Color.Black);
         }
@@ -155,11 +185,22 @@ public class Simulation : Game {
         
         foreach (var ball in _balls) {
             _spriteBatch?.Draw(ball.GetTexture(_spriteBatch.GraphicsDevice), ball.TopLeft, color);
-            if (_rules[RuleType.Redraw] == 0) {
+            if (_rules[RuleType.Redraw] != 1) {
                 _spriteBatch?.DrawCircle(ball.Bounds, 100, Color.White, 2.5f);
             }
         }
 
+        if (_rules[RuleType.Redraw] != 1) {
+            _spriteBatch.FillRectangle(
+                new(
+                    0, 
+                    _outerCircle.Center.Y + _outerCircle.Radius, 
+                    WindowWidth, 
+                    WindowHeight - _outerCircle.Center.Y - _outerCircle.Radius
+                ),
+                Color.Black
+            );
+        }
         foreach (var drawable in _drawables) {
             drawable.Draw(_spriteBatch, _fonts);
         }
@@ -167,25 +208,5 @@ public class Simulation : Game {
         _spriteBatch?.End();
 
         base.Draw(gameTime);
-    }
-
-    private static Color ColorFromHSV(int h, float s, float v) {
-        var rgb = new int[3];
-
-        var baseColor = (h + 60) % 360 / 120;
-        var shift = (h + 60) % 360 - (120 * baseColor + 60 );
-        var secondaryColor = (baseColor + (shift >= 0 ? 1 : -1) + 3) % 3;
-        
-        rgb[baseColor] = 255;
-        rgb[secondaryColor] = (int) (MathF.Abs(shift) / 60.0f * 255.0f);
-        
-        for (var i = 0; i < 3; i++) {
-            rgb[i] += (int) ((255 - rgb[i]) * (1 - s));
-        }
-        for (var i = 0; i < 3; i++) {
-            rgb[i] -= (int) (rgb[i] * (1 - v));
-        }
-
-        return new Color(rgb[0], rgb[1], rgb[2]);
     }
 }

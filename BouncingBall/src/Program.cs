@@ -1,7 +1,5 @@
-﻿using System;
-using BouncingBall;
+﻿using BouncingBall;
 using Melanchall.DryWetMidi.Core;
 
-Console.Write("MIDI File: ");
-using var game = new Simulation(MidiFile.Read(Console.ReadLine()));
+using var game = new Simulation(MidiFile.Read("D:/Downloads/fallen_down.mid"));
 game.Run();

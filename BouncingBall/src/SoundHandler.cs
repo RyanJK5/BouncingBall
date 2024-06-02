@@ -24,10 +24,10 @@ public class SoundHandler {
         _onOffPairs = [];
         _outputDevice = OutputDevice.GetByName("Microsoft GS Wavetable Synth");
         _map = file.GetTempoMap();
-        CreateOnOffPairs();
+        Restart();
     }
 
-    private void CreateOnOffPairs() {
+    public void Restart() {
         List<long> times = [];
         List<TimedEvent> singlePairs = [];
 
@@ -49,8 +49,7 @@ public class SoundHandler {
 
     public void PlayNextNote() {
         if (!_enumerator.MoveNext()) {
-            CreateOnOffPairs();
-            _enumerator.MoveNext();
+            Restart();
         }
 
         List<NoteOffEvent> offs = [];

@@ -29,7 +29,7 @@ public class Ball {
     public void Update(GameTime gameTime, Random random, SimulationRules rules) {
         Velocity.Y += gameTime.GetElapsedSeconds() * rules[RuleType.Gravity];
         
-        if (MathF.Abs(Velocity.X) < 1) {
+        if (MathF.Abs(Velocity.X) < 1 && rules[RuleType.Gravity] >= 0) {
             int sign = random.NextDouble() > 0.5 ? 1 : -1;
             Velocity.X += sign * ((float) (random.NextDouble() * 5) + 1);
         }
