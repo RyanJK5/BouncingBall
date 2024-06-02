@@ -14,7 +14,7 @@
 
 #---------------------------------- Content ---------------------------------#
 
-#begin numberfont_0.png
+#begin fonts/numberfont_0.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -24,14 +24,14 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:numberfont_0.png
+/build:fonts/numberfont_0.png
 
-#begin numberfont.fnt
+#begin fonts/numberfont.fnt
 /importer:BitmapFontImporter
 /processor:BitmapFontProcessor
-/build:numberfont.fnt
+/build:fonts/numberfont.fnt
 
-#begin sliderfont_0.png
+#begin fonts/sliderfont_0.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -41,10 +41,10 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:sliderfont_0.png
+/build:fonts/sliderfont_0.png
 
-#begin sliderfont.fnt
+#begin fonts/sliderfont.fnt
 /importer:BitmapFontImporter
 /processor:BitmapFontProcessor
-/build:sliderfont.fnt
+/build:fonts/sliderfont.fnt
 

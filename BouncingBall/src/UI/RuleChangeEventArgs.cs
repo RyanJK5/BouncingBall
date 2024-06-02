@@ -1,6 +1,8 @@
+using System;
+
 namespace BouncingBall.UI;
 
-public readonly struct UIEventArgs(RuleType rule, float value) {
+public class RuleChangeEventArgs(RuleType rule, float value) : EventArgs {
     
     public readonly RuleType Rule = rule;
 

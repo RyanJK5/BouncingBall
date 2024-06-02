@@ -8,7 +8,7 @@ using MonoGame.Extended.Input.InputListeners;
 
 namespace BouncingBall.UI;
 
-public class Slider(RuleType ruleType, float initialValue=0) : Widget {
+public class RuleSlider(RuleType ruleType, float initialValue=0) : Widget<RuleChangeEventArgs> {
     
     public override RectangleF Bounds { 
         get => _bounds;
@@ -39,7 +39,7 @@ public class Slider(RuleType ruleType, float initialValue=0) : Widget {
 
     private bool _dragging;
 
-    public override event EventHandler<UIEventArgs> Updated;
+    public override event EventHandler<RuleChangeEventArgs> Updated;
 
     public override void Draw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts) {
         spriteBatch.FillRectangle(Bounds, SliderColor);
@@ -67,7 +67,7 @@ public class Slider(RuleType ruleType, float initialValue=0) : Widget {
     }
 
     public override InputListener[] GetListeners() {
-        MouseListener listener = new();
+        var listener = new MouseListener();
         listener.MouseDown += (sender, args) => {
             if (!Bounds.Contains(args.Position)) {
                 return;
@@ -89,7 +89,7 @@ public class Slider(RuleType ruleType, float initialValue=0) : Widget {
 
     private void SetValueFrom(float xPos) {
         _value = MathF.Max(MinValue, MathF.Min(MaxValue, (xPos - Bounds.X) / Bounds.Width * (MaxValue - MinValue) + MinValue));
-        Updated.Invoke(this, new UIEventArgs(ManagedRule, _value));
+        Updated.Invoke(this, new RuleChangeEventArgs(ManagedRule, _value));
     }
 
     private float KnobX => (_value - MinValue) / (MaxValue - MinValue) * Bounds.Width + Bounds.X;

@@ -1,5 +1,4 @@
 using System;
-using System.Drawing.Printing;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -8,21 +7,23 @@ namespace BouncingBall;
 
 public class Ball {
 
-    public CircleF Bounds;
+    private CircleF _bounds;
+    public CircleF Bounds => _bounds;
+
     public Vector2 Velocity;
 
     public float Radius {
-        get => Bounds.Radius;
-        set => Bounds.Radius = value;
+        get => _bounds.Radius;
+        set => _bounds.Radius = value;
     }
 
     public Point2 Center {
-        get => Bounds.Center;
-        set => Bounds.Center = value;
+        get => _bounds.Center;
+        set => _bounds.Center = value;
     }
 
     public Point2 TopLeft {
-        get => Bounds.ToRectangleF().TopLeft;
+        get => _bounds.ToRectangleF().TopLeft;
     }
     
     public void Update(GameTime gameTime, Random random, SimulationRules rules) {
