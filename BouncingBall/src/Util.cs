@@ -43,4 +43,6 @@ public static class Util {
 
         return new Color(rgb[0], rgb[1], rgb[2]);
     }
+
+    public static float Clamp(float min, float max, float value) =>  MathF.Max(min, MathF.Min(max, value));
 }

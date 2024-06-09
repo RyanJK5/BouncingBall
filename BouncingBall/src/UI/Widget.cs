@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -7,13 +6,21 @@ using MonoGame.Extended.Input.InputListeners;
 
 namespace BouncingBall.UI;
 
-public abstract class Widget<T> : IDrawable where T : EventArgs {
+public abstract class Widget : IDrawable {
+
+    public bool Active = true;
 
     public virtual RectangleF Bounds { get; set; }
 
+    public virtual int Layer { get; set; }
+
     public abstract InputListener[] GetListeners();
 
-    public abstract void Draw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts);
+    protected abstract void WhenDraw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts);
 
-    public abstract event EventHandler<T> Updated;
+    public void Draw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts) {
+        if (Active) {
+            WhenDraw(spriteBatch, fonts);
+        }
+    }
 }

@@ -9,6 +9,7 @@ using Melanchall.DryWetMidi.Core;
 using BouncingBall.UI;
 using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.BitmapFonts;
+using System.Linq;
 
 #nullable enable
 
@@ -31,7 +32,7 @@ public class Simulation : Game {
     private readonly SoundHandler _soundHandler;
 
     private readonly List<Ball> _balls;
-    private readonly List<IDrawable> _drawables;
+    private readonly List<UI.IDrawable> _drawables;
 
     private SpriteBatch? _spriteBatch;
     
@@ -62,7 +63,7 @@ public class Simulation : Game {
         _rules = new();
 
         _soundHandler = new(file);
-        OuterCollision += (sender, args) => _soundHandler.PlayNextNote();
+        // OuterCollision += (sender, args) => _soundHandler.PlayNextNote();
         OuterCollision += (sender, args) => {
             foreach (Ball ball in args.Balls) {
                 ball.Radius += args.Rules[RuleType.RadiusIncrement];
@@ -81,7 +82,7 @@ public class Simulation : Game {
         var button = new Button(buttonTexture) {
             Bounds = new(
                 _outerCircle.Center.X + _outerCircle.Radius - buttonTexture.Width,
-                _outerCircle.Center.Y + _outerCircle.Radius, 
+                _outerCircle.Center.Y + _outerCircle.Radius - buttonTexture.Height, 
                 buttonTexture.Width, 
                 buttonTexture.Height
             )
@@ -91,17 +92,15 @@ public class Simulation : Game {
         _drawables.Add(button);
     }
 
-    // TODO: fix balls spawning outside
     private void InitializeBalls() {
-        bool oneBall = (int) _rules[RuleType.BallCount] == 1;
-        for (var i = 0; i < (int) _rules[RuleType.BallCount]; i++) {
-            float theta = (float) Random.NextDouble() * MathF.Tau;
-            float distance = (float) Random.NextDouble() * (_outerCircle.Radius - _rules[RuleType.InitialBallRadius] * 3);
-            
+        int ballCount = (int) _rules[RuleType.InitialBallCount];
+        for (var i = 0; i < ballCount; i++) {
+            float theta = i * (MathF.Tau / ballCount);
+            float distance = ballCount > 1 ? _rules[RuleType.InitialBallRadius] * ballCount * 0.6f : 0;
             _balls.Add(new Ball() {
                 Center = new(
-                    (oneBall ? distance * MathF.Sin(theta) : 0) + _outerCircle.Center.Y, 
-                    (oneBall ? distance * MathF.Cos(theta) : 0) + _outerCircle.Center.X
+                    distance * MathF.Cos(theta) + _outerCircle.Center.X,
+                    distance * MathF.Sin(theta) + _outerCircle.Center.Y 
                 ), 
                 Radius = _rules[RuleType.InitialBallRadius],
                 Velocity = new Vector2(0, 1) * _rules[RuleType.InitialSpeed]
@@ -110,24 +109,55 @@ public class Simulation : Game {
     }
 
     private void InitializeSliders() {
-        RuleType[] ruleTypes = Enum.GetValues<RuleType>();
-        for (var i = 0; i < ruleTypes.Length; i++) {
-            Range<float> range = RuleTypes.DefaultRange(ruleTypes[i]);
-            var slider = new RuleSlider(ruleTypes[i], _rules[ruleTypes[i]]) {
+        var dict = new Dictionary<RuleCategory, List<Widget>>() {
+            { RuleCategory.Initial, CreateSliderList(RuleTypes.InitialConditions()) },
+            { RuleCategory.Simulation, CreateSliderList(RuleTypes.DynamicConditions()) },
+            { RuleCategory.Graphics, [] },
+            { RuleCategory.Audio, [] }
+        };
+
+        var container = new TabbedContainer(
+            new(
+                0,
+                _outerCircle.Center.Y + _outerCircle.Radius + 25,
+                WindowWidth,
+                WindowHeight - _outerCircle.Center.Y - _outerCircle.Radius - 25
+            ),
+            dict
+        ); 
+        Components.Add(new InputListenerComponent(this, container.GetListeners()));
+        _drawables.Add(container);
+    }
+
+    private List<Widget> CreateSliderList(RuleType[] rules) {
+        List<Widget> result = [];
+        for (var i = 0; i < rules.Length; i++) {
+            RuleSlider slider = CreateSlider(
+                rules[i], 
+                RuleTypes.DefaultRange(rules[i]), 
+                _outerCircle.Center.Y + _outerCircle.Radius + 50 + i * 60
+            );
+            result.Add(slider);
+        }
+        return result;
+    }
+
+    private RuleSlider CreateSlider(RuleType rule, Range<float> ruleRange, float yPos) {
+        var slider = new RuleSlider(rule, _rules[rule]) {
                 Bounds = new RectangleF(
                     _outerCircle.Center.X - _outerCircle.Radius, 
-                    _outerCircle.Center.Y + _outerCircle.Radius + 25 + i * 60,
+                    yPos,
                     100,
                     20
                 ),
                 KnobWidth = 10,
-                MinValue = range.Min,
-                MaxValue = range.Max
-            };
-            Components.Add(new InputListenerComponent(this, slider.GetListeners()));
-            slider.Updated += (sender, args) => _rules = new SimulationRules(_rules, args.Rule, args.Value);
-            _drawables.Add(slider);
-        }
+                MinValue = ruleRange.Min,
+                MaxValue = ruleRange.Max
+        };
+        Components.Add(new InputListenerComponent(this, slider.GetListeners()));
+        slider.Updated += (sender, args) => _rules = new SimulationRules(_rules, args.Rule, args.Value);
+        _drawables.Add(slider);
+        return slider;    
     }
 
     private void RestartSimulation() {
@@ -175,9 +205,7 @@ public class Simulation : Game {
 
     protected override void Draw(GameTime gameTime) {
         Color color = Util.ColorFromHSV(_hue, Saturation, Value);
-        if (_rules[RuleType.Redraw] == 1) {
-            GraphicsDevice.Clear(Color.Black);
-        }
+        GraphicsDevice.Clear(Color.Black);
 
         _spriteBatch?.Begin();
 
@@ -185,24 +213,21 @@ public class Simulation : Game {
         
         foreach (var ball in _balls) {
             _spriteBatch?.Draw(ball.GetTexture(_spriteBatch.GraphicsDevice), ball.TopLeft, color);
-            if (_rules[RuleType.Redraw] != 1) {
-                _spriteBatch?.DrawCircle(ball.Bounds, 100, Color.White, 2.5f);
-            }
         }
 
-        if (_rules[RuleType.Redraw] != 1) {
-            _spriteBatch.FillRectangle(
-                new(
-                    0, 
-                    _outerCircle.Center.Y + _outerCircle.Radius, 
-                    WindowWidth, 
-                    WindowHeight - _outerCircle.Center.Y - _outerCircle.Radius
-                ),
-                Color.Black
-            );
-        }
-        foreach (var drawable in _drawables) {
-            drawable.Draw(_spriteBatch, _fonts);
+        List<UI.IDrawable> _remainingDrawables = [];
+        _remainingDrawables.AddRange(_drawables);
+        int? layer = _remainingDrawables.MinBy(drawable => drawable.Layer)?.Layer;
+        while (_remainingDrawables.Count > 0) {
+            for (var i = 0; i < _remainingDrawables.Count; i++) {
+                var drawable = _remainingDrawables[i];
+                if (drawable.Layer == layer) {
+                    drawable.Draw(_spriteBatch, _fonts);
+                    _remainingDrawables.Remove(drawable);
+                    i--;
+                }
+            }
+            layer++;
         }
 
         _spriteBatch?.End();
