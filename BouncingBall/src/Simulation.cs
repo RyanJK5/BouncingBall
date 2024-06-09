@@ -10,6 +10,7 @@ using BouncingBall.UI;
 using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.BitmapFonts;
 using System.Linq;
+using System.Globalization;
 
 #nullable enable
 
@@ -64,12 +65,7 @@ public class Simulation : Game {
 
         _soundHandler = new(file);
         // OuterCollision += (sender, args) => _soundHandler.PlayNextNote();
-        OuterCollision += (sender, args) => {
-            foreach (Ball ball in args.Balls) {
-                ball.Radius += args.Rules[RuleType.RadiusIncrement];
-            }
-        };
-        InnerCollision += (sender, args) => _outerCircle.Radius += args.Rules[RuleType.OuterRadiusIncrement];
+        InnerCollision += (sender, args) => _outerCircle.Radius = Math.Max(1, _outerCircle.Radius + args.Rules[RuleType.ContainerIncrement]);
     }
 
     protected override void Initialize() {
@@ -110,8 +106,8 @@ public class Simulation : Game {
 
     private void InitializeSliders() {
         var dict = new Dictionary<RuleCategory, List<Widget>>() {
-            { RuleCategory.Initial, CreateSliderList(RuleTypes.InitialConditions()) },
-            { RuleCategory.Simulation, CreateSliderList(RuleTypes.DynamicConditions()) },
+            { RuleCategory.Initial, CreateRuleControlList(RuleTypes.InitialConditions()) },
+            { RuleCategory.Simulation, CreateRuleControlList(RuleTypes.DynamicConditions()) },
             { RuleCategory.Graphics, [] },
             { RuleCategory.Audio, [] }
         };
@@ -129,15 +125,30 @@ public class Simulation : Game {
         _drawables.Add(container);
     }
 
-    private List<Widget> CreateSliderList(RuleType[] rules) {
+    private List<Widget> CreateRuleControlList(RuleType[] rules) {
         List<Widget> result = [];
+        SimulationEventType[] triggers = Enum.GetValues<SimulationEventType>();
+
         for (var i = 0; i < rules.Length; i++) {
+            float yPos = _outerCircle.Center.Y + _outerCircle.Radius + (i + 1) * 60;
             RuleSlider slider = CreateSlider(
                 rules[i], 
                 RuleTypes.DefaultRange(rules[i]), 
-                _outerCircle.Center.Y + _outerCircle.Radius + 50 + i * 60
+                yPos
             );
             result.Add(slider);
+
+            if (RuleTypes.InitialCondition(rules[i])) {
+                continue;
+            }
+
+            for (var j = 0; j < triggers.Length; j++) {
+                result.Add(CreateSwitch(
+                    rules[i], 
+                    triggers[j], 
+                    new Vector2(slider.Bounds.X + 200 + j * 75, yPos))
+                );
+            }
         }
         return result;
     }
@@ -159,6 +170,55 @@ public class Simulation : Game {
         _drawables.Add(slider);
         return slider;    
     }
+
+    private ToggleSwitch CreateSwitch(RuleType rule, SimulationEventType trigger, Vector2 position) {
+        var toggleSwitch = new ToggleSwitch(trigger, rule) {
+            Bounds = new RectangleF(position.X, position.Y, 50, 20),
+            KnobWidth = 20
+        };
+        toggleSwitch.Updated += HandleSwitchUpdate;
+        Components.Add(new InputListenerComponent(this, toggleSwitch.GetListeners()));
+        _drawables.Add(toggleSwitch);
+        return toggleSwitch;
+    }
+
+    private void HandleSwitchUpdate(object? sender, RuleTriggerUpdateEventArgs args) {
+        if (args.State) {
+                switch (args.Trigger) {
+                    case SimulationEventType.BallOnWall:
+                        OuterCollision += GetEventFor(args.Rule);
+                        return;
+                    case SimulationEventType.BallOnBall:
+                        InnerCollision += GetEventFor(args.Rule);
+                        return;
+                }
+            }
+            switch (args.Trigger) {
+                case SimulationEventType.BallOnWall:
+                    OuterCollision -= GetEventFor(args.Rule);
+                    return;
+                case SimulationEventType.BallOnBall:
+                    InnerCollision -= GetEventFor(args.Rule);
+                    return;
+            }
+    }
+
+    private EventHandler<BallEventArgs> GetEventFor(RuleType rule) =>
+        rule switch {
+            RuleType.SpeedIncrement => (sender, args) => {
+                foreach (Ball ball in args.Balls) {
+                    ball.Velocity += new Vector2(args.Rules[RuleType.SpeedIncrement]);
+                }
+            },
+            RuleType.RadiusIncrement => (sender, args) => {
+                foreach (Ball ball in args.Balls) {
+                    ball.Radius += args.Rules[RuleType.RadiusIncrement];
+                }
+            },
+            RuleType.ContainerIncrement => (sender, args) => _outerCircle.Radius = Math.Max(1, _outerCircle.Radius + args.Rules[RuleType.ContainerIncrement]),
+            _ => throw new ArgumentException("rule must be dynamic"),
+        }
+    ;
 
     private void RestartSimulation() {
         _soundHandler.Restart();

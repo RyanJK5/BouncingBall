@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -11,8 +10,8 @@ namespace BouncingBall.UI;
 
 public class TabbedContainer : Widget, IUpdatable<MouseEventArgs> {
 
-    private static readonly Color LightGray = new(80, 80, 80);
-    private static readonly Color DarkGray = new(40, 40, 40);
+    private readonly Color TabColor = new(80, 80, 80);
+    private readonly Color BoundsColor = new(40, 40, 40);
 
     private readonly Dictionary<RuleCategory, List<Widget>> _widgets;
 
@@ -56,13 +55,13 @@ public class TabbedContainer : Widget, IUpdatable<MouseEventArgs> {
         foreach (RectangleF bounds in _tabs.Keys) {
             RuleCategory category = _tabs[bounds];
             string str = Util.AddSpaces(category.ToString());
-            Color color = category == ActiveTab ? LightGray : DarkGray;
+            Color color = category == ActiveTab ? TabColor : BoundsColor;
 
             spriteBatch.FillRectangle(bounds, color);
             spriteBatch.DrawString(font, str, new(bounds.X - 2, bounds.Y), Color.White);
         }
 
-        spriteBatch.FillRectangle(Bounds, DarkGray);
+        spriteBatch.FillRectangle(Bounds, BoundsColor);
     }
 
     public override InputListener[] GetListeners() {

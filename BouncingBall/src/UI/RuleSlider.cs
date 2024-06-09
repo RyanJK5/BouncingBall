@@ -27,7 +27,7 @@ public class RuleSlider(RuleType ruleType, float initialValue=0) : Widget, IUpda
 
     private RectangleF _bounds;
 
-    public Size _knobSize;
+    private Size _knobSize;
 
     public Color SliderColor = Color.DarkGray;
     public Color KnobColor = Color.LightGray;
@@ -53,11 +53,7 @@ public class RuleSlider(RuleType ruleType, float initialValue=0) : Widget, IUpda
             KnobColor
         );
         
-        string str = _value.ToString();
-        int dotindex = str.IndexOf('.');
-        str = dotindex > 0 ? str[..dotindex] : str;
-        spriteBatch.DrawString(fonts[FontType.NumberFont], str, new(_bounds.X, _bounds.Bottom), Color.White);
-        
+        spriteBatch.DrawString(fonts[FontType.NumberFont], ((int) _value).ToString(), new(_bounds.X, _bounds.Bottom), Color.White);
         spriteBatch.DrawString(
             fonts[FontType.SliderFont], 
             Util.AddSpaces(ManagedRule.ToString()), 
@@ -69,7 +65,7 @@ public class RuleSlider(RuleType ruleType, float initialValue=0) : Widget, IUpda
     public override InputListener[] GetListeners() {
         var listener = new MouseListener();
         listener.MouseDown += (sender, args) => {
-            if (!Bounds.Contains(args.Position)) {
+            if (!Bounds.Contains(args.Position) || !Active) {
                 return;
             }
             SetValueFrom(args.Position.X);
@@ -79,7 +75,7 @@ public class RuleSlider(RuleType ruleType, float initialValue=0) : Widget, IUpda
         listener.MouseDragEnd += (sender, args) => _dragging = false;
 
         listener.MouseDrag += (sender, args) => {
-            if (!_dragging && !Bounds.Contains(args.Position)) {
+            if (!Active || (!_dragging && !Bounds.Contains(args.Position))) {
                 return;
             }
             SetValueFrom(args.Position.X);
@@ -89,7 +85,7 @@ public class RuleSlider(RuleType ruleType, float initialValue=0) : Widget, IUpda
 
     private void SetValueFrom(float xPos) {
         _value = Util.Clamp(MinValue, MaxValue, (xPos - Bounds.X) / Bounds.Width * (MaxValue - MinValue) + MinValue);
-        Updated?.Invoke(this, new RuleChangeEventArgs(ManagedRule, _value));
+        Updated?.Invoke(this, new RuleChangeEventArgs(ManagedRule, (int) _value));
     }
 
     private float KnobX => (_value - MinValue) / (MaxValue - MinValue) * Bounds.Width + Bounds.X;

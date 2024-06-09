@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 namespace BouncingBall;
 
 public static class Util {
+
     public static string AddSpaces(string str) {
         string result = "";
         foreach (char c in str) {

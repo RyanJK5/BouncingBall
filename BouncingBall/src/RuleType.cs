@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using MonoGame.Extended;
 
@@ -12,7 +11,7 @@ public enum RuleType {
     InitialBallRadius,
     
     RadiusIncrement,
-    OuterRadiusIncrement,
+    ContainerIncrement,
     SpeedIncrement
 }
 
@@ -25,7 +24,7 @@ public static class RuleTypes {
             RuleType.InitialSpeed => 5,
             RuleType.InitialBallRadius => 20,
             RuleType.RadiusIncrement => 0,
-            RuleType.OuterRadiusIncrement => 0,
+            RuleType.ContainerIncrement => 0,
             RuleType.SpeedIncrement => 0,
             _ => throw new  ArgumentException("Must provide non-null ruletype")
         }
@@ -38,7 +37,7 @@ public static class RuleTypes {
             RuleType.InitialSpeed => new(0, 50),
             RuleType.InitialBallRadius => new(1, 50),
             RuleType.RadiusIncrement => new(-10, 10),
-            RuleType.OuterRadiusIncrement => new(-10, 10),
+            RuleType.ContainerIncrement => new(-10, 10),
             RuleType.SpeedIncrement => new(-10, 10),
             _ => throw new ArgumentException("Must provide non-null ruletype"),
         }
