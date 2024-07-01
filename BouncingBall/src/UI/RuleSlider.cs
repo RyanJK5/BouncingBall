@@ -6,7 +6,7 @@ using MonoGame.Extended.BitmapFonts;
 
 namespace BouncingBall.UI;
 
-public class RuleSlider(RuleType ruleType, float initialValue = 0) : Slider<RuleChangeEventArgs>(initialValue) {
+public class RuleSlider(RuleType ruleType, float initialValue = 0) : Slider<RuleChangeEventArgs>(false, initialValue) {
     
     public readonly RuleType ManagedRule = ruleType;
 

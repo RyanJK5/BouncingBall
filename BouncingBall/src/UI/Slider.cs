@@ -8,7 +8,7 @@ using MonoGame.Extended.Input.InputListeners;
 
 namespace BouncingBall.UI;
 
-public abstract class Slider<T>(float initialValue=0) : Widget, IUpdatable<T> where T : EventArgs {
+public abstract class Slider<T>(bool vertical, float initialValue=0) : Widget, IUpdatable<T> where T : EventArgs {
     
     public override RectangleF Bounds { 
         get => _bounds;
@@ -36,6 +36,7 @@ public abstract class Slider<T>(float initialValue=0) : Widget, IUpdatable<T> wh
     protected float Value = initialValue;
 
     private bool _dragging;
+    private bool _vertical = vertical;
 
     public event EventHandler<T> Updated;
 
@@ -44,7 +45,7 @@ public abstract class Slider<T>(float initialValue=0) : Widget, IUpdatable<T> wh
         spriteBatch.FillRectangle(
             new RectangleF(
                 KnobX, 
-                Bounds.Y, 
+                KnobY, 
                 _knobSize.Width, 
                 _knobSize.Height
             ), 
@@ -58,7 +59,7 @@ public abstract class Slider<T>(float initialValue=0) : Widget, IUpdatable<T> wh
             if (!Bounds.Contains(args.Position) || !Active) {
                 return;
             }
-            SetValueFrom(args.Position.X);
+            SetValueFrom(args.Position);
         };
 
         listener.MouseDragStart += (sender, args) => _dragging = Bounds.Contains(args.Position);
@@ -68,17 +69,20 @@ public abstract class Slider<T>(float initialValue=0) : Widget, IUpdatable<T> wh
             if (!Active || (!_dragging && !Bounds.Contains(args.Position))) {
                 return;
             }
-            SetValueFrom(args.Position.X);
+            SetValueFrom(args.Position);
         };
         return [ listener ];
     }
 
-    private void SetValueFrom(float xPos) {
-        Value = Util.Clamp(MinValue, MaxValue, (xPos - Bounds.X) / Bounds.Width * (MaxValue - MinValue) + MinValue);
+    private void SetValueFrom(Point2 pos) {
+        float progression = _vertical ? (pos.Y - Bounds.Y) / Bounds.Height : (pos.X - Bounds.X) / Bounds.Width;
+        Value = Util.Clamp(MinValue, MaxValue, progression * (MaxValue - MinValue) + MinValue);
         Updated?.Invoke(this, GetEventArgs());
     }
 
     protected abstract T GetEventArgs();
 
-    private float KnobX => (Value - MinValue) / (MaxValue - MinValue) * Bounds.Width + Bounds.X;
+    private float KnobX => _vertical ? Bounds.X : (Value - MinValue) / (MaxValue - MinValue) * Bounds.Width + Bounds.X;
+
+    private float KnobY => !_vertical ? Bounds.Y : (Value - MinValue) / (MaxValue - MinValue) * Bounds.Height + Bounds.Y;
 }
