@@ -14,13 +14,23 @@ public abstract class Slider<T>(bool vertical, float initialValue=0) : Widget, I
         get => _bounds;
         set {
             _bounds = value;
+            if (_vertical) {
+                _knobSize.Width = (int) _bounds.Width;
+                return;
+            }
             _knobSize.Height = (int) _bounds.Height;
         }
     }
 
     public int KnobWidth {
-        get => _knobSize.Width;
-        set => _knobSize.Width = value;
+        get => _vertical ? _knobSize.Height : _knobSize.Width;
+        set {
+            if (_vertical) {
+                _knobSize.Height = value;
+                return;
+            }
+            _knobSize.Width = value;
+        }
     }
 
     private RectangleF _bounds;
@@ -75,14 +85,14 @@ public abstract class Slider<T>(bool vertical, float initialValue=0) : Widget, I
     }
 
     private void SetValueFrom(Point2 pos) {
-        float progression = _vertical ? (pos.Y - Bounds.Y) / Bounds.Height : (pos.X - Bounds.X) / Bounds.Width;
+        float progression = _vertical ? (pos.Y - Bounds.Y) / (Bounds.Height - KnobWidth) : (pos.X - Bounds.X) / (Bounds.Width - KnobWidth);
         Value = Util.Clamp(MinValue, MaxValue, progression * (MaxValue - MinValue) + MinValue);
         Updated?.Invoke(this, GetEventArgs());
     }
 
     protected abstract T GetEventArgs();
 
-    private float KnobX => _vertical ? Bounds.X : (Value - MinValue) / (MaxValue - MinValue) * Bounds.Width + Bounds.X;
+    private float KnobX => _vertical ? Bounds.X : (Value - MinValue) / (MaxValue - MinValue) * (Bounds.Width - KnobWidth) + Bounds.X;
 
-    private float KnobY => !_vertical ? Bounds.Y : (Value - MinValue) / (MaxValue - MinValue) * Bounds.Height + Bounds.Y;
+    private float KnobY => !_vertical ? Bounds.Y : (Value - MinValue) / (MaxValue - MinValue) * (Bounds.Height - KnobWidth) + Bounds.Y;
 }

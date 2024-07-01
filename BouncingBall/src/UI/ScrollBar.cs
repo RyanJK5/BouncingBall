@@ -3,10 +3,7 @@ using MonoGame.Extended.Input.InputListeners;
 
 namespace BouncingBall.UI;
 
-public class ScrollBar : Slider<MouseEventArgs> {
-    public ScrollBar(bool vertical, float initialValue = 0) : base(vertical, initialValue) {
-    }
-
+public class ScrollBar(bool vertical) : Slider<MouseEventArgs>(vertical) {
     protected override MouseEventArgs GetEventArgs() {
         throw new NotImplementedException();
     }

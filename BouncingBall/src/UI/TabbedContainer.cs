@@ -60,7 +60,6 @@ public class TabbedContainer : Widget, IUpdatable<MouseEventArgs> {
             spriteBatch.FillRectangle(bounds, color);
             spriteBatch.DrawString(font, str, new(bounds.X - 2, bounds.Y), Color.White);
         }
-
         spriteBatch.FillRectangle(Bounds, BoundsColor);
     }
 
