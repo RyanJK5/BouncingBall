@@ -14,7 +14,7 @@ public abstract class Slider<T>(bool vertical, float initialValue=0) : Widget, I
         get => _bounds;
         set {
             _bounds = value;
-            if (_vertical) {
+            if (Vertical) {
                 _knobSize.Width = (int) _bounds.Width;
                 return;
             }
@@ -23,9 +23,9 @@ public abstract class Slider<T>(bool vertical, float initialValue=0) : Widget, I
     }
 
     public int KnobWidth {
-        get => _vertical ? _knobSize.Height : _knobSize.Width;
+        get => Vertical ? _knobSize.Height : _knobSize.Width;
         set {
-            if (_vertical) {
+            if (Vertical) {
                 _knobSize.Height = value;
                 return;
             }
@@ -46,19 +46,19 @@ public abstract class Slider<T>(bool vertical, float initialValue=0) : Widget, I
     protected float Value = initialValue;
 
     private bool _dragging;
-    private bool _vertical = vertical;
+    public readonly bool Vertical = vertical;
 
     public event EventHandler<T> Updated;
 
-    protected override void WhenDraw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts) {
-        spriteBatch.FillRectangle(Bounds, SliderColor);
+    public override void Draw(SpriteBatch spriteBatch, RectangleF region, Dictionary<FontType, BitmapFont> fonts) {
+        spriteBatch.FillRectangle(Bounds.Intersection(region), SliderColor);
         spriteBatch.FillRectangle(
             new RectangleF(
                 KnobX, 
                 KnobY, 
                 _knobSize.Width, 
                 _knobSize.Height
-            ), 
+            ).Intersection(region), 
             KnobColor
         );
     }
@@ -72,8 +72,18 @@ public abstract class Slider<T>(bool vertical, float initialValue=0) : Widget, I
             SetValueFrom(args.Position);
         };
 
-        listener.MouseDragStart += (sender, args) => _dragging = Bounds.Contains(args.Position);
-        listener.MouseDragEnd += (sender, args) => _dragging = false;
+        listener.MouseDragStart += (sender, args) => {
+            if (!Active) {
+                return;
+            }
+            _dragging = Bounds.Contains(args.Position);
+        };
+        listener.MouseDragEnd += (sender, args) => {
+            if (!Active) {
+                return;
+            }
+            _dragging = false;
+        };
 
         listener.MouseDrag += (sender, args) => {
             if (!Active || (!_dragging && !Bounds.Contains(args.Position))) {
@@ -85,14 +95,14 @@ public abstract class Slider<T>(bool vertical, float initialValue=0) : Widget, I
     }
 
     private void SetValueFrom(Point2 pos) {
-        float progression = _vertical ? (pos.Y - Bounds.Y) / (Bounds.Height - KnobWidth) : (pos.X - Bounds.X) / (Bounds.Width - KnobWidth);
+        float progression = Vertical ? (pos.Y - Bounds.Y) / (Bounds.Height - KnobWidth) : (pos.X - Bounds.X) / (Bounds.Width - KnobWidth);
         Value = Util.Clamp(MinValue, MaxValue, progression * (MaxValue - MinValue) + MinValue);
         Updated?.Invoke(this, GetEventArgs());
     }
 
     protected abstract T GetEventArgs();
 
-    private float KnobX => _vertical ? Bounds.X : (Value - MinValue) / (MaxValue - MinValue) * (Bounds.Width - KnobWidth) + Bounds.X;
+    private float KnobX => Vertical ? Bounds.X : (Value - MinValue) / (MaxValue - MinValue) * (Bounds.Width - KnobWidth) + Bounds.X;
 
-    private float KnobY => !_vertical ? Bounds.Y : (Value - MinValue) / (MaxValue - MinValue) * (Bounds.Height - KnobWidth) + Bounds.Y;
+    private float KnobY => !Vertical ? Bounds.Y : (Value - MinValue) / (MaxValue - MinValue) * (Bounds.Height - KnobWidth) + Bounds.Y;
 }

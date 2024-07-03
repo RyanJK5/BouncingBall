@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
 using MonoGame.Extended.Input.InputListeners;
 
@@ -18,7 +19,9 @@ public class Button : Widget, IUpdatable<EventArgs> {
         Bounds = texture.Bounds;
     }
 
-    protected override void WhenDraw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts) => spriteBatch.Draw(_texture, Bounds.Position, Color.White);
+    public override void Draw(SpriteBatch spriteBatch, RectangleF region, Dictionary<FontType, BitmapFont> fonts) => 
+        spriteBatch.Draw(_texture, Bounds.Position, Color.White)
+    ;
 
     public override InputListener[] GetListeners() {
         var listener = new MouseListener();

@@ -16,11 +16,5 @@ public abstract class Widget : IDrawable {
 
     public abstract InputListener[] GetListeners();
 
-    protected abstract void WhenDraw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts);
-
-    public void Draw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts) {
-        if (Active) {
-            WhenDraw(spriteBatch, fonts);
-        }
-    }
+    public abstract void Draw(SpriteBatch spriteBatch, RectangleF region, Dictionary<FontType, BitmapFont> fonts);
 }

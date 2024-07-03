@@ -9,8 +9,6 @@ using Melanchall.DryWetMidi.Core;
 using BouncingBall.UI;
 using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.BitmapFonts;
-using System.Linq;
-using System.Globalization;
 
 #nullable enable
 
@@ -33,11 +31,11 @@ public class Simulation : Game {
     private readonly SoundHandler _soundHandler;
 
     private readonly List<Ball> _balls;
-    private readonly List<UI.IDrawable> _drawables;
+    private readonly RawContainer _screen;
 
     private SpriteBatch? _spriteBatch;
     
-    private CircleF _outerCircle;
+    private CircleF _ballContainer;
 
     private int _hue;
 
@@ -59,13 +57,16 @@ public class Simulation : Game {
 
         _hue = 0;
         _balls = [];
-        _drawables = [];
         _fonts = [];
         _rules = new();
 
+        _screen = new() {
+            Bounds = new(0, 0, WindowWidth, WindowHeight)
+        };
+
         _soundHandler = new(file);
         // OuterCollision += (sender, args) => _soundHandler.PlayNextNote();
-        InnerCollision += (sender, args) => _outerCircle.Radius = Math.Max(1, _outerCircle.Radius + args.Rules[RuleType.ContainerIncrement]);
+        InnerCollision += (sender, args) => _ballContainer.Radius = Math.Max(1, _ballContainer.Radius + args.Rules[RuleType.ContainerIncrement]);
     }
 
     protected override void Initialize() {
@@ -77,15 +78,15 @@ public class Simulation : Game {
         Texture2D buttonTexture = Content.Load<Texture2D>("img/restartbutton");
         var button = new Button(buttonTexture) {
             Bounds = new(
-                _outerCircle.Center.X + _outerCircle.Radius - buttonTexture.Width,
-                _outerCircle.Center.Y + _outerCircle.Radius - buttonTexture.Height, 
+                _ballContainer.Center.X + _ballContainer.Radius - buttonTexture.Width,
+                _ballContainer.Center.Y + _ballContainer.Radius - buttonTexture.Height, 
                 buttonTexture.Width, 
                 buttonTexture.Height
             )
         };
         button.Updated += (sender, args) => RestartSimulation();
         Components.Add(new InputListenerComponent(this, button.GetListeners()));
-        _drawables.Add(button);
+        _screen.Add(button);
     }
 
     private void InitializeBalls() {
@@ -95,8 +96,8 @@ public class Simulation : Game {
             float distance = ballCount > 1 ? _rules[RuleType.InitialBallRadius] * ballCount * 0.6f : 0;
             _balls.Add(new Ball() {
                 Center = new(
-                    distance * MathF.Cos(theta) + _outerCircle.Center.X,
-                    distance * MathF.Sin(theta) + _outerCircle.Center.Y 
+                    distance * MathF.Cos(theta) + _ballContainer.Center.X,
+                    distance * MathF.Sin(theta) + _ballContainer.Center.Y 
                 ), 
                 Radius = _rules[RuleType.InitialBallRadius],
                 Velocity = new Vector2(0, 1) * _rules[RuleType.InitialSpeed]
@@ -105,24 +106,35 @@ public class Simulation : Game {
     }
 
     private void InitializeSliders() {
+        var scroll = new ScrollBar(true) {
+                Bounds = new RectangleF(
+                    WindowWidth - 10, 
+                    _ballContainer.Center.Y + _ballContainer.Radius + 25, 
+                    10, 
+                    WindowHeight - _ballContainer.Center.Y - _ballContainer.Radius - 25
+                ),
+                KnobWidth = 20
+        };
+        Components.Add(new InputListenerComponent(this, scroll.GetListeners()));
+        
         var dict = new Dictionary<RuleCategory, List<Widget>>() {
             { RuleCategory.Initial, CreateRuleControlList(RuleTypes.InitialConditions()) },
             { RuleCategory.Simulation, CreateRuleControlList(RuleTypes.DynamicConditions()) },
-            { RuleCategory.Graphics, [] },
+            { RuleCategory.Graphics, []},
             { RuleCategory.Audio, [] }
         };
 
         var container = new TabbedContainer(
             new(
                 0,
-                _outerCircle.Center.Y + _outerCircle.Radius + 25,
+                _ballContainer.Center.Y + _ballContainer.Radius + 25,
                 WindowWidth,
-                WindowHeight - _outerCircle.Center.Y - _outerCircle.Radius - 25
+                WindowHeight - _ballContainer.Center.Y - _ballContainer.Radius - 25
             ),
             dict
-        ); 
+        );
         Components.Add(new InputListenerComponent(this, container.GetListeners()));
-        _drawables.Add(container);
+        _screen.Add(container);
     }
 
     private List<Widget> CreateRuleControlList(RuleType[] rules) {
@@ -130,13 +142,25 @@ public class Simulation : Game {
         SimulationEventType[] triggers = Enum.GetValues<SimulationEventType>();
 
         for (var i = 0; i < rules.Length; i++) {
-            float yPos = _outerCircle.Center.Y + _outerCircle.Radius + (i + 1) * 60;
+            float yPos = _ballContainer.Center.Y + _ballContainer.Radius + (i + 1) * 60;
             RuleSlider slider = CreateSlider(
                 rules[i], 
                 RuleTypes.DefaultRange(rules[i]), 
                 yPos
             );
             result.Add(slider);
+
+            var bar = new ScrollBar(true) {
+                Bounds = new RectangleF(
+                    WindowWidth - 10, 
+                    _ballContainer.Center.Y + _ballContainer.Radius + 25, 
+                    10, 
+                    WindowHeight - _ballContainer.Center.Y - _ballContainer.Radius - 25
+                ),
+                KnobWidth = 20
+            };
+            result.Add(bar);
+            Components.Add(new InputListenerComponent(this, bar.GetListeners()));
 
             if (RuleTypes.InitialCondition(rules[i])) {
                 continue;
@@ -156,7 +180,7 @@ public class Simulation : Game {
     private RuleSlider CreateSlider(RuleType rule, Range<float> ruleRange, float yPos) {
         var slider = new RuleSlider(rule, _rules[rule]) {
                 Bounds = new RectangleF(
-                    _outerCircle.Center.X - _outerCircle.Radius, 
+                    _ballContainer.Center.X - _ballContainer.Radius, 
                     yPos,
                     100,
                     20
@@ -167,7 +191,6 @@ public class Simulation : Game {
         };
         Components.Add(new InputListenerComponent(this, slider.GetListeners()));
         slider.Updated += (sender, args) => _rules = new SimulationRules(_rules, args.Rule, args.Value);
-        _drawables.Add(slider);
         return slider;    
     }
 
@@ -178,7 +201,6 @@ public class Simulation : Game {
         };
         toggleSwitch.Updated += HandleSwitchUpdate;
         Components.Add(new InputListenerComponent(this, toggleSwitch.GetListeners()));
-        _drawables.Add(toggleSwitch);
         return toggleSwitch;
     }
 
@@ -215,7 +237,7 @@ public class Simulation : Game {
                     ball.Radius += args.Rules[RuleType.RadiusIncrement];
                 }
             },
-            RuleType.ContainerIncrement => (sender, args) => _outerCircle.Radius = Math.Max(1, _outerCircle.Radius + args.Rules[RuleType.ContainerIncrement]),
+            RuleType.ContainerIncrement => (sender, args) => _ballContainer.Radius = Math.Max(1, _ballContainer.Radius + args.Rules[RuleType.ContainerIncrement]),
             _ => throw new ArgumentException("rule must be dynamic"),
         }
     ;
@@ -225,7 +247,7 @@ public class Simulation : Game {
         GraphicsDevice.Clear(Color.Black);
 
         int outerRadius = (WindowWidth - BorderMargin * 2) / 2;
-        _outerCircle = new CircleF(new(WindowWidth / 2, outerRadius + BorderMargin * 4), outerRadius);
+        _ballContainer = new CircleF(new(WindowWidth / 2, outerRadius + BorderMargin * 4), outerRadius);
         
         _balls.Clear();
         InitializeBalls();
@@ -255,9 +277,9 @@ public class Simulation : Game {
                 ball1.OnCollision(ball2);
             }
 
-            if (ball1.CollidesWithOuter(_outerCircle)) {
+            if (ball1.CollidesWithOuter(_ballContainer)) {
                 OuterCollision?.Invoke(this, new BallEventArgs(SimulationEventType.BallOnWall, _rules, ball1));
-                ball1.OnCollision(_outerCircle);
+                ball1.OnCollision(_ballContainer);
                 continue;
             }
         }
@@ -269,26 +291,13 @@ public class Simulation : Game {
 
         _spriteBatch?.Begin();
 
-        _spriteBatch?.DrawCircle(_outerCircle, 100, color, 5f);
+        _spriteBatch?.DrawCircle(_ballContainer, 100, color, 5f);
         
         foreach (var ball in _balls) {
             _spriteBatch?.Draw(ball.GetTexture(_spriteBatch.GraphicsDevice), ball.TopLeft, color);
         }
 
-        List<UI.IDrawable> _remainingDrawables = [];
-        _remainingDrawables.AddRange(_drawables);
-        int? layer = _remainingDrawables.MinBy(drawable => drawable.Layer)?.Layer;
-        while (_remainingDrawables.Count > 0) {
-            for (var i = 0; i < _remainingDrawables.Count; i++) {
-                var drawable = _remainingDrawables[i];
-                if (drawable.Layer == layer) {
-                    drawable.Draw(_spriteBatch, _fonts);
-                    _remainingDrawables.Remove(drawable);
-                    i--;
-                }
-            }
-            layer++;
-        }
+        _screen.Draw(_spriteBatch, _screen.Bounds, _fonts);
 
         _spriteBatch?.End();
 

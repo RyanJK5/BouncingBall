@@ -37,14 +37,14 @@ public class ToggleSwitch(SimulationEventType type, RuleType managedRule, bool d
 
     public event EventHandler<RuleTriggerUpdateEventArgs> Updated;
 
-    protected override void WhenDraw(SpriteBatch spriteBatch, Dictionary<FontType, BitmapFont> fonts) {
-        spriteBatch.FillRectangle(Bounds, State ? OnColor : OffColor);
+    public override void Draw(SpriteBatch spriteBatch, RectangleF region, Dictionary<FontType, BitmapFont> fonts) {
+        spriteBatch.FillRectangle(Bounds.Intersection(region), State ? OnColor : OffColor);
         spriteBatch.FillRectangle(
             new RectangleF(
                 Bounds.X + (State ? Bounds.Width - _knobSize.Width : 0), 
                 Bounds.Y,
                 _knobSize.Width, 
-                _knobSize.Height), 
+                _knobSize.Height).Intersection(region), 
             KnobColor
         );
     }

@@ -1,10 +1,5 @@
-using System;
-using MonoGame.Extended.Input.InputListeners;
-
 namespace BouncingBall.UI;
 
-public class ScrollBar(bool vertical) : Slider<MouseEventArgs>(vertical) {
-    protected override MouseEventArgs GetEventArgs() {
-        throw new NotImplementedException();
-    }
+public class ScrollBar(bool vertical) : Slider<ScrollEventArgs>(vertical) {
+    protected override ScrollEventArgs GetEventArgs() => new(Value * (Vertical ? Bounds.Height : Bounds.Width));
 }
